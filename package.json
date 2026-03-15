@@ -1,0 +1,35 @@
+{
+  "name": "ai-plot-digitizer",
+  "version": "0.1.0",
+  "description": "Extract numerical data from scientific plot images — AI-first CLI tool",
+  "type": "module",
+  "license": "AGPL-3.0",
+  "main": "src/core/extraction.js",
+  "bin": {
+    "ai-plot-digitizer": "src/cli/index.js"
+  },
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --forceExit",
+    "test:verbose": "node --experimental-vm-modules node_modules/.bin/jest --verbose --forceExit"
+  },
+  "dependencies": {
+    "canvas": "^3.1.0",
+    "commander": "^13.1.0",
+    "sharp": "^0.34.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@jest/globals": "^29.7.0"
+  },
+  "keywords": [
+    "plot-digitizer",
+    "data-extraction",
+    "image-analysis",
+    "scientific-plots",
+    "webplotdigitizer"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Larry-of-cosmotim/ai-plot-digitizer.git"
+  }
+}
