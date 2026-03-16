@@ -148,12 +148,14 @@ describe('REST API', () => {
     expect(res.body.colors[0].hex).toMatch(/^#F/);
   });
 
-  test('POST /api/detect-axes — returns stub', async () => {
+  test('POST /api/detect-axes — runs OCR analysis', async () => {
     const res = await request(server, 'POST', '/api/detect-axes', {
       image: testImageBase64,
     });
     expect(res.status).toBe(200);
-    expect(res.body.confidence).toBe(0);
-    expect(res.body.message).toMatch(/not yet implemented/i);
+    // The synthetic image has no text, so OCR won't find tick labels
+    expect(res.body).toHaveProperty('confidence');
+    expect(res.body).toHaveProperty('ticks');
+    expect(typeof res.body.confidence).toBe('number');
   });
 });

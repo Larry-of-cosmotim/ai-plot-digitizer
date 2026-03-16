@@ -17,6 +17,7 @@ import { resolve, join, basename, extname } from 'node:path';
 import { extractData, formatResult } from '../core/extraction.js';
 import { loadImage, analyzeColors } from '../core/image.js';
 import { startServer } from '../api/server.js';
+import { autoExtract } from '../ai/auto.js';
 
 const program = new Command();
 
@@ -161,6 +162,80 @@ program
       }
 
       console.error('Done.');
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+// ─── auto ─────────────────────────────────────────────────────────────
+
+program
+  .command('auto')
+  .description('Fully automatic extraction using OCR + optional vision model')
+  .argument('<image>', 'Path to the plot image')
+  .option('--vision <provider>', 'Vision model provider: openai | anthropic | google')
+  .option('--api-key <key>', 'API key for vision provider (or set env var)')
+  .option('--model <name>', 'Vision model name override')
+  .option('--color <hex>', 'Override auto-detected data colour')
+  .option('--tolerance <n>', 'Colour tolerance', (v) => parseInt(v, 10), 40)
+  .option('--method <type>', 'Detection method', 'averaging')
+  .option('--format <fmt>', 'Output format: csv | json | tsv', 'csv')
+  .option('--output <file>', 'Output file (default: stdout)')
+  .option('--interactive', 'Show detected config and ask for confirmation')
+  .option('--verbose', 'Show progress messages')
+  .action(async (imagePath, opts) => {
+    try {
+      const onProgress = opts.verbose
+        ? (step, detail) => console.error(`  [${step}] ${detail}`)
+        : undefined;
+
+      if (opts.interactive) {
+        console.error('Interactive mode: auto-detecting axes...\n');
+      }
+
+      const result = await autoExtract(resolve(imagePath), {
+        visionProvider: opts.vision,
+        visionOptions: {
+          apiKey: opts.apiKey,
+          model: opts.model,
+        },
+        color: opts.color,
+        tolerance: opts.tolerance,
+        method: opts.method,
+        format: opts.format,
+        onProgress,
+      });
+
+      if (opts.interactive) {
+        console.error('\n── Auto-detected configuration ──');
+        console.error(`  Detection source: ${result.detectionSource}`);
+        console.error(`  Axis config:`);
+        console.error(`    Scale X: ${result.axisConfig.scale.x}`);
+        console.error(`    Scale Y: ${result.axisConfig.scale.y}`);
+        if (result.visionAnalysis) {
+          console.error(`  Vision analysis:`);
+          console.error(`    Plot type: ${result.visionAnalysis.plotType}`);
+          console.error(`    X label: ${result.visionAnalysis.axisLabels.x}`);
+          console.error(`    Y label: ${result.visionAnalysis.axisLabels.y}`);
+          console.error(`    Confidence: ${(result.visionAnalysis.confidence * 100).toFixed(0)}%`);
+          if (result.visionAnalysis.datasets.length > 0) {
+            console.error(`    Datasets: ${result.visionAnalysis.datasets.map((d) => `${d.label} (${d.color})`).join(', ')}`);
+          }
+        }
+        console.error(`  Points extracted: ${result.data.length}`);
+        console.error(`  Data colour: ${result.metadata.color}`);
+        console.error('');
+      }
+
+      const output = formatResult(result, opts.format);
+
+      if (opts.output) {
+        await writeFile(resolve(opts.output), output);
+        console.error(`✓ Extracted ${result.data.length} points → ${opts.output}`);
+      } else {
+        process.stdout.write(output);
+      }
     } catch (err) {
       console.error(`Error: ${err.message}`);
       process.exit(1);

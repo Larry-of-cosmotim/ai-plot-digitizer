@@ -17,6 +17,8 @@ import { randomUUID } from 'node:crypto';
 import { extractData, formatResult } from '../core/extraction.js';
 import { loadImage, analyzeColors } from '../core/image.js';
 import { swaggerSpec } from './swagger.js';
+import { recognizeText, parseTickLabels, buildAxesFromTicks } from '../ai/ocr.js';
+import { autoExtract } from '../ai/auto.js';
 
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } }); // 50 MB
 
@@ -172,11 +174,72 @@ export function createApp(options = {}) {
         return res.status(400).json({ error: 'No image provided.' });
       }
 
-      // Phase 4 will implement real auto-detection. For now return a stub.
+      const img = await loadImage(tmpPath);
+      let ocrResult, ticksParsed, axesConfig;
+      try {
+        ocrResult = await recognizeText(tmpPath);
+        ticksParsed = parseTickLabels(ocrResult.blocks, img.width, img.height);
+        axesConfig = buildAxesFromTicks(ticksParsed);
+      } catch (ocrErr) {
+        // OCR may fail on some images — return empty result rather than 500
+        return res.json({
+          axes: null,
+          confidence: 0,
+          ticks: null,
+          ocrText: '',
+          message: `OCR failed: ${ocrErr.message}`,
+        });
+      }
+
       res.json({
-        axes: null,
-        confidence: 0,
-        message: 'Auto axis detection not yet implemented. Use manual calibration.',
+        axes: axesConfig,
+        confidence: axesConfig ? Math.min((ocrResult.confidence || 0) / 100, 1) : 0,
+        ticks: ticksParsed,
+        ocrText: ocrResult.fullText || '',
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    } finally {
+      if (tmpPath) await unlink(tmpPath).catch(() => {});
+    }
+  });
+
+  // ─── POST /api/auto ─────────────────────────────────────
+
+  app.post('/api/auto', upload.single('image'), async (req, res) => {
+    let tmpPath;
+    try {
+      if (req.file) {
+        tmpPath = await writeTempImage(req.file.buffer);
+      } else if (req.body?.image) {
+        tmpPath = await writeTempImage(req.body.image);
+      } else {
+        return res.status(400).json({ error: 'No image provided.' });
+      }
+
+      const opts = req.body?.options || {};
+      const result = await autoExtract(tmpPath, {
+        visionProvider: opts.visionProvider,
+        visionOptions: opts.visionOptions || {},
+        color: opts.color,
+        tolerance: opts.tolerance,
+        method: opts.method,
+      });
+
+      res.json({
+        data: result.data,
+        metadata: result.metadata,
+        axisConfig: result.axisConfig,
+        detectionSource: result.detectionSource,
+        visionAnalysis: result.visionAnalysis
+          ? {
+              plotType: result.visionAnalysis.plotType,
+              axisLabels: result.visionAnalysis.axisLabels,
+              scaleTypes: result.visionAnalysis.scaleTypes,
+              datasets: result.visionAnalysis.datasets,
+              confidence: result.visionAnalysis.confidence,
+            }
+          : null,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });
