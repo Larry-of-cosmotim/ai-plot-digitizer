@@ -16,6 +16,7 @@ import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
 import { resolve, join, basename, extname } from 'node:path';
 import { extractData, formatResult } from '../core/extraction.js';
 import { loadImage, analyzeColors } from '../core/image.js';
+import { startServer } from '../api/server.js';
 
 const program = new Command();
 
@@ -160,6 +161,26 @@ program
       }
 
       console.error('Done.');
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+// ─── serve ────────────────────────────────────────────────────────────
+
+program
+  .command('serve')
+  .description('Start the REST API server')
+  .option('--port <n>', 'Port number', (v) => parseInt(v, 10), 3000)
+  .option('--ui', 'Serve browser UI')
+  .action(async (opts) => {
+    try {
+      await startServer({
+        port: opts.port,
+        serveUI: opts.ui,
+        uiPath: resolve('src/ui/public'),
+      });
     } catch (err) {
       console.error(`Error: ${err.message}`);
       process.exit(1);
