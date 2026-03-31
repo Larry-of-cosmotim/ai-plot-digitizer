@@ -19,6 +19,7 @@ import { loadImage, analyzeColors } from '../core/image.js';
 import { swaggerSpec } from './swagger.js';
 import { recognizeText, parseTickLabels, buildAxesFromTicks } from '../ai/ocr.js';
 import { autoExtract } from '../ai/auto.js';
+import { createVisionAdapter } from '../ai/vision.js';
 
 const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } }); // 50 MB
 
@@ -248,6 +249,55 @@ export function createApp(options = {}) {
     }
   });
 
+  // ─── POST /api/vision-extract ────────────────────────────
+
+  app.post('/api/vision-extract', upload.single('image'), async (req, res) => {
+    let tmpPath;
+    try {
+      if (req.file) {
+        tmpPath = await writeTempImage(req.file.buffer);
+      } else if (req.body?.image) {
+        tmpPath = await writeTempImage(req.body.image);
+      } else {
+        return res.status(400).json({ error: 'No image provided.' });
+      }
+
+      const opts = req.body?.options || {};
+      const provider = opts.provider || opts.visionProvider;
+      if (!provider) {
+        return res.status(400).json({
+          error: 'Missing options.provider. Specify "openai", "anthropic", or "google".',
+        });
+      }
+
+      const adapter = createVisionAdapter(provider, {
+        apiKey: opts.apiKey,
+        model: opts.model,
+      });
+
+      const result = await adapter.extractData(tmpPath, {
+        seriesHint: opts.seriesHint,
+      });
+
+      res.json({
+        plotType: result.plotType,
+        axisLabels: result.axisLabels,
+        scaleTypes: result.scaleTypes,
+        datasets: result.datasets.map((ds) => ({
+          label: ds.label,
+          color: ds.color,
+          points: ds.data.length,
+          data: ds.data,
+        })),
+        confidence: result.confidence,
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    } finally {
+      if (tmpPath) await unlink(tmpPath).catch(() => {});
+    }
+  });
+
   // ─── Serve Browser UI (Phase 5) ────────────────────────
 
   if (options.serveUI && options.uiPath) {
@@ -286,6 +336,7 @@ export async function startServer(options = {}) {
       console.log(`  Extract: POST http://localhost:${port}/api/extract`);
       console.log(`  Colors:  POST http://localhost:${port}/api/colors`);
       console.log(`  Auto:    POST http://localhost:${port}/api/auto`);
+      console.log(`  Vision:  POST http://localhost:${port}/api/vision-extract`);
       resolve(server);
     });
   });

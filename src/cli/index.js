@@ -19,6 +19,7 @@ import { extractData, formatResult } from '../core/extraction.js';
 import { loadImage, analyzeColors } from '../core/image.js';
 import { startServer } from '../api/server.js';
 import { autoExtract } from '../ai/auto.js';
+import { createVisionAdapter } from '../ai/vision.js';
 
 const program = new Command();
 
@@ -236,6 +237,77 @@ program
         console.error(`✓ Extracted ${result.data.length} points → ${opts.output}`);
       } else {
         process.stdout.write(output);
+      }
+    } catch (err) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+// ─── vision-extract ───────────────────────────────────────────────────
+
+program
+  .command('vision-extract')
+  .description('Extract data directly using a vision model (no pixel detection)')
+  .argument('<image>', 'Path to the plot image')
+  .requiredOption('--vision <provider>', 'Vision model provider: openai | anthropic | google')
+  .option('--api-key <key>', 'API key (or set env var)')
+  .option('--model <name>', 'Model name override')
+  .option('--series <hint>', 'Hint about which series to extract (e.g. "red circles")')
+  .option('--format <fmt>', 'Output format: csv | json | tsv', 'csv')
+  .option('--output <file>', 'Output file (default: stdout)')
+  .option('--all-series', 'Output all detected series (default: first only)')
+  .option('--verbose', 'Show details')
+  .action(async (imagePath, opts) => {
+    try {
+      const adapter = createVisionAdapter(opts.vision, {
+        apiKey: opts.apiKey,
+        model: opts.model,
+      });
+
+      if (opts.verbose) console.error(`Sending image to ${opts.vision}...`);
+
+      const result = await adapter.extractData(resolve(imagePath), {
+        seriesHint: opts.series,
+      });
+
+      if (opts.verbose) {
+        console.error(`  Plot type: ${result.plotType}`);
+        console.error(`  X axis: ${result.axisLabels.x}`);
+        console.error(`  Y axis: ${result.axisLabels.y}`);
+        console.error(`  Scale: X=${result.scaleTypes.x}, Y=${result.scaleTypes.y}`);
+        console.error(`  Datasets: ${result.datasets.length}`);
+        result.datasets.forEach((ds, i) => {
+          console.error(`    [${i + 1}] "${ds.label}" (${ds.color}) — ${ds.data.length} points`);
+        });
+        console.error(`  Confidence: ${(result.confidence * 100).toFixed(0)}%`);
+      }
+
+      if (result.datasets.length === 0) {
+        console.error('No data points detected by the vision model.');
+        process.exit(1);
+      }
+
+      // Determine which datasets to output
+      const datasets = opts.allSeries ? result.datasets : [result.datasets[0]];
+
+      for (const ds of datasets) {
+        if (opts.allSeries && datasets.length > 1) {
+          console.error(`\n── ${ds.label} (${ds.data.length} points) ──`);
+        }
+
+        const fakeResult = { data: ds.data, metadata: { method: 'vision' } };
+        const output = formatResult(fakeResult, opts.format);
+
+        if (opts.output) {
+          const outFile = datasets.length > 1
+            ? opts.output.replace(/(\.\w+)$/, `_${ds.label.replace(/\s+/g, '_')}$1`)
+            : opts.output;
+          await writeFile(resolve(outFile), output);
+          console.error(`✓ ${ds.data.length} points → ${outFile}`);
+        } else {
+          process.stdout.write(output);
+        }
       }
     } catch (err) {
       console.error(`Error: ${err.message}`);

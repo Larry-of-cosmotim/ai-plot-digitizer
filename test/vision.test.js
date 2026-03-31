@@ -28,4 +28,26 @@ describe('VisionAdapter base', () => {
     const adapter = new VisionAdapter('test');
     await expect(adapter.analyze('/tmp/test.png')).rejects.toThrow('not implemented');
   });
+
+  test('throws on unimplemented extractData()', async () => {
+    const adapter = new VisionAdapter('test');
+    await expect(adapter.extractData('/tmp/test.png')).rejects.toThrow('not implemented');
+  });
+});
+
+describe('Adapter extractData method', () => {
+  test('OpenAI adapter has extractData method', () => {
+    const adapter = createVisionAdapter('openai', { apiKey: 'test' });
+    expect(typeof adapter.extractData).toBe('function');
+  });
+
+  test('Anthropic adapter has extractData method', () => {
+    const adapter = createVisionAdapter('anthropic', { apiKey: 'test' });
+    expect(typeof adapter.extractData).toBe('function');
+  });
+
+  test('Google adapter has extractData method', () => {
+    const adapter = createVisionAdapter('google', { apiKey: 'test' });
+    expect(typeof adapter.extractData).toBe('function');
+  });
 });
