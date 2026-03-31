@@ -13,7 +13,8 @@
 
 import { Command } from 'commander';
 import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
-import { resolve, join, basename, extname } from 'node:path';
+import { resolve, join, basename, extname, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { extractData, formatResult } from '../core/extraction.js';
 import { loadImage, analyzeColors } from '../core/image.js';
 import { startServer } from '../api/server.js';
@@ -251,10 +252,14 @@ program
   .option('--ui', 'Serve browser UI')
   .action(async (opts) => {
     try {
+      // Resolve UI path relative to this source file, not cwd
+      const __dirname = dirname(fileURLToPath(import.meta.url));
+      const uiPath = resolve(__dirname, '..', 'ui', 'public');
+
       await startServer({
         port: opts.port,
         serveUI: opts.ui,
-        uiPath: resolve('src/ui/public'),
+        uiPath,
       });
     } catch (err) {
       console.error(`Error: ${err.message}`);

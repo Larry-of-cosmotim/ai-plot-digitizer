@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Plot Digitizer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>📊 AI Plot Digitizer</h1>
+    <p class="subtitle">Extract data from scientific plots</p>
+  </header>
+
+  <main>
+    <!-- Step 1: Image Upload -->
+    <section id="upload-section" class="panel">
+      <h2>1. Upload Image</h2>
+      <div id="drop-zone" class="drop-zone">
+        <p>Drag & drop a plot image here, or</p>
+        <label class="file-btn">
+          Choose File
+          <input type="file" id="file-input" accept="image/*" hidden>
+        </label>
+      </div>
+      <canvas id="plot-canvas" class="hidden"></canvas>
+      <div id="image-info" class="hidden">
+        <span id="img-dimensions"></span>
+        <button id="btn-clear-image" class="btn-small">Clear</button>
+      </div>
+    </section>
+
+    <!-- Step 2: Calibration -->
+    <section id="calibration-section" class="panel hidden">
+      <h2>2. Calibrate Axes</h2>
+      <p class="hint">Click 4 points on the plot to define the axes, then enter their data values.</p>
+
+      <div id="calib-mode-bar">
+        <button id="btn-manual-calib" class="btn active">Manual (click 4 points)</button>
+        <button id="btn-auto-calib" class="btn">Auto-detect (OCR)</button>
+      </div>
+
+      <div id="calib-points">
+        <div class="calib-row" data-idx="0">
+          <span class="calib-label">X₁ (min):</span>
+          <span class="calib-pixel">—</span>
+          <input type="number" class="calib-value" placeholder="xmin" step="any">
+        </div>
+        <div class="calib-row" data-idx="1">
+          <span class="calib-label">X₂ (max):</span>
+          <span class="calib-pixel">—</span>
+          <input type="number" class="calib-value" placeholder="xmax" step="any">
+        </div>
+        <div class="calib-row" data-idx="2">
+          <span class="calib-label">Y₁ (min):</span>
+          <span class="calib-pixel">—</span>
+          <input type="number" class="calib-value" placeholder="ymin" step="any">
+        </div>
+        <div class="calib-row" data-idx="3">
+          <span class="calib-label">Y₂ (max):</span>
+          <span class="calib-pixel">—</span>
+          <input type="number" class="calib-value" placeholder="ymax" step="any">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>X scale: <select id="scale-x"><option>linear</option><option>log</option><option>ln</option></select></label>
+        <label>Y scale: <select id="scale-y"><option>linear</option><option>log</option><option>ln</option></select></label>
+      </div>
+
+      <div id="auto-calib-status" class="hidden">
+        <p id="auto-calib-msg"></p>
+      </div>
+    </section>
+
+    <!-- Step 3: Detection Settings -->
+    <section id="detection-section" class="panel hidden">
+      <h2>3. Detection Settings</h2>
+      <div class="form-row">
+        <label>Data colour:
+          <input type="color" id="data-color" value="#000000">
+          <input type="text" id="data-color-hex" value="#000000" size="8">
+        </label>
+        <label>Tolerance: <input type="range" id="tolerance" min="1" max="200" value="30"><span id="tol-val">30</span></label>
+      </div>
+      <div class="form-row">
+        <label>Method:
+          <select id="det-method">
+            <option value="averaging">Averaging Window</option>
+            <option value="blob">Blob Detection</option>
+          </select>
+        </label>
+      </div>
+      <button id="btn-extract" class="btn btn-primary">Extract Data</button>
+      <div id="extract-status" class="hidden"></div>
+    </section>
+
+    <!-- Step 4: Results -->
+    <section id="results-section" class="panel hidden">
+      <h2>4. Results</h2>
+      <div id="results-info"></div>
+      <div class="form-row">
+        <label>Format:
+          <select id="export-format">
+            <option value="csv">CSV</option>
+            <option value="tsv">TSV</option>
+            <option value="json">JSON</option>
+          </select>
+        </label>
+        <button id="btn-download" class="btn">Download</button>
+        <button id="btn-copy" class="btn">Copy to Clipboard</button>
+      </div>
+      <textarea id="results-text" rows="15" readonly></textarea>
+    </section>
+  </main>
+
+  <footer>
+    <p>AI Plot Digitizer v0.1.0 · <a href="/api/openapi.json">API Spec</a> · <a href="https://github.com/Larry-of-cosmotim/ai-plot-digitizer">GitHub</a></p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

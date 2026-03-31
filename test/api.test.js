@@ -2,6 +2,10 @@ import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
 import { createApp } from '../src/api/server.js';
 import sharp from 'sharp';
 import http from 'node:http';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Minimal HTTP client that works without external deps.
@@ -78,8 +82,9 @@ describe('REST API', () => {
     const pngBuf = await sharp(buf, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
     testImageBase64 = pngBuf.toString('base64');
 
-    // Start server on random port
-    const app = createApp();
+    // Start server on random port with UI enabled
+    const uiPath = resolve(__dirname, '..', 'src', 'ui', 'public');
+    const app = createApp({ serveUI: true, uiPath });
     server = await new Promise((resolve) => {
       const s = app.listen(0, () => resolve(s));
     });
@@ -146,6 +151,21 @@ describe('REST API', () => {
     expect(res.body.metadata.height).toBe(500);
     // White should be dominant
     expect(res.body.colors[0].hex).toMatch(/^#F/);
+  });
+
+  test('GET / — serves browser UI index.html', async () => {
+    const res = await request(server, 'GET', '/');
+    expect(res.status).toBe(200);
+    // Body will be a string since it's HTML, not JSON
+    expect(typeof res.body).toBe('string');
+    expect(res.body).toContain('AI Plot Digitizer');
+  });
+
+  test('GET /ui/ — also serves browser UI', async () => {
+    const res = await request(server, 'GET', '/ui/');
+    expect(res.status).toBe(200);
+    expect(typeof res.body).toBe('string');
+    expect(res.body).toContain('AI Plot Digitizer');
   });
 
   test('POST /api/detect-axes — runs OCR analysis', async () => {

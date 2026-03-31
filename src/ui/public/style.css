@@ -1,0 +1,184 @@
+/* ── AI Plot Digitizer — Browser UI ──────────────────────────────── */
+
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --surface2: #0f3460;
+  --accent: #e94560;
+  --accent2: #53a8b6;
+  --text: #eee;
+  --text-dim: #999;
+  --radius: 8px;
+  --gap: 16px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  padding: var(--gap);
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+header { text-align: center; padding: 24px 0 16px; }
+header h1 { font-size: 1.8rem; }
+.subtitle { color: var(--text-dim); font-size: 0.95rem; }
+
+footer { text-align: center; padding: 24px 0; color: var(--text-dim); font-size: 0.85rem; }
+footer a { color: var(--accent2); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* Panels */
+.panel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: var(--gap);
+}
+.panel h2 { font-size: 1.15rem; margin-bottom: 12px; color: var(--accent2); }
+.hidden { display: none !important; }
+.hint { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 12px; }
+
+/* Drop zone */
+.drop-zone {
+  border: 2px dashed var(--surface2);
+  border-radius: var(--radius);
+  padding: 40px;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s;
+  cursor: pointer;
+}
+.drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(233, 69, 96, 0.05);
+}
+.drop-zone p { margin-bottom: 12px; color: var(--text-dim); }
+
+.file-btn {
+  display: inline-block;
+  background: var(--surface2);
+  color: var(--text);
+  padding: 8px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.file-btn:hover { background: var(--accent); }
+
+/* Canvas */
+#plot-canvas {
+  width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  border-radius: var(--radius);
+  margin-top: 12px;
+  cursor: crosshair;
+}
+
+#image-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+/* Buttons */
+.btn {
+  background: var(--surface2);
+  color: var(--text);
+  border: none;
+  padding: 8px 20px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+.btn:hover { background: var(--accent2); }
+.btn.active { background: var(--accent); }
+.btn-primary { background: var(--accent); font-weight: 600; }
+.btn-primary:hover { background: #c63052; }
+.btn-small { padding: 4px 12px; font-size: 0.8rem; }
+
+/* Calibration */
+#calib-mode-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+
+.calib-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--surface2);
+}
+.calib-label { width: 80px; font-weight: 500; font-size: 0.9rem; }
+.calib-pixel { width: 120px; font-size: 0.85rem; color: var(--text-dim); }
+.calib-value {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--surface2);
+  border-radius: 4px;
+  padding: 4px 8px;
+  width: 120px;
+  font-size: 0.9rem;
+}
+.calib-value:focus { border-color: var(--accent2); outline: none; }
+
+/* Form rows */
+.form-row { display: flex; gap: 16px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+.form-row label { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; }
+.form-row select, .form-row input[type="text"] {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--surface2);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+}
+
+#data-color { width: 40px; height: 30px; border: none; border-radius: 4px; cursor: pointer; }
+#tolerance { width: 120px; }
+#tol-val { font-size: 0.85rem; color: var(--text-dim); width: 30px; }
+
+/* Results */
+#results-info { margin-bottom: 12px; font-size: 0.9rem; }
+#results-text {
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--surface2);
+  border-radius: var(--radius);
+  padding: 12px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+
+/* Calibration point markers */
+.calib-marker {
+  position: absolute;
+  width: 12px; height: 12px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 10;
+}
+.calib-marker::after {
+  content: attr(data-label);
+  position: absolute;
+  top: -18px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  body { padding: 8px; }
+  .form-row { flex-direction: column; align-items: flex-start; }
+  .calib-row { flex-wrap: wrap; }
+}

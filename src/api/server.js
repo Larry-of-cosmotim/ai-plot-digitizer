@@ -251,7 +251,12 @@ export function createApp(options = {}) {
   // ─── Serve Browser UI (Phase 5) ────────────────────────
 
   if (options.serveUI && options.uiPath) {
+    // Serve at both /ui and / for convenience
     app.use('/ui', express.static(options.uiPath));
+    app.use('/', express.static(options.uiPath));
+
+    // Redirect bare /ui to /ui/ so relative paths work
+    app.get('/ui', (_req, res) => res.redirect('/ui/'));
   }
 
   return app;
@@ -273,10 +278,14 @@ export async function startServer(options = {}) {
   return new Promise((resolve) => {
     const server = app.listen(port, () => {
       console.log(`AI Plot Digitizer API running on http://localhost:${port}`);
+      if (options.serveUI) {
+        console.log(`  UI:      http://localhost:${port}/`);
+      }
       console.log(`  Health:  GET  http://localhost:${port}/api/health`);
       console.log(`  Spec:    GET  http://localhost:${port}/api/openapi.json`);
       console.log(`  Extract: POST http://localhost:${port}/api/extract`);
       console.log(`  Colors:  POST http://localhost:${port}/api/colors`);
+      console.log(`  Auto:    POST http://localhost:${port}/api/auto`);
       resolve(server);
     });
   });
