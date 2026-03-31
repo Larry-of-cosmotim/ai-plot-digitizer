@@ -1,0 +1,7 @@
+test/
+.github/
+coverage/
+*.tgz
+.DS_Store
+ROADMAP.md
+eng.traineddata

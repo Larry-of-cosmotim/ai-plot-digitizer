@@ -1,16 +1,36 @@
 {
   "name": "ai-plot-digitizer",
   "version": "0.1.0",
-  "description": "Extract numerical data from scientific plot images — AI-first CLI tool",
+  "description": "Extract numerical data from scientific plot images — CLI, REST API, browser UI, and AI-powered auto-detection",
   "type": "module",
   "license": "AGPL-3.0",
   "main": "src/core/extraction.js",
+  "exports": {
+    ".": "./src/core/extraction.js",
+    "./axes": "./src/core/axes.js",
+    "./image": "./src/core/image.js",
+    "./detection": "./src/core/detection.js",
+    "./export": "./src/core/export.js",
+    "./api": "./src/api/server.js",
+    "./auto": "./src/ai/auto.js"
+  },
   "bin": {
     "ai-plot-digitizer": "src/cli/index.js"
   },
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/.bin/jest --forceExit",
-    "test:verbose": "node --experimental-vm-modules node_modules/.bin/jest --verbose --forceExit"
+    "test:verbose": "node --experimental-vm-modules node_modules/.bin/jest --verbose --forceExit",
+    "test:coverage": "node --experimental-vm-modules node_modules/.bin/jest --forceExit --coverage",
+    "start": "node src/cli/index.js serve --ui",
+    "serve": "node src/cli/index.js serve --ui"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "canvas": "^3.1.0",
@@ -31,10 +51,18 @@
     "data-extraction",
     "image-analysis",
     "scientific-plots",
-    "webplotdigitizer"
+    "webplotdigitizer",
+    "ocr",
+    "computer-vision",
+    "materials-science"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/Larry-of-cosmotim/ai-plot-digitizer.git"
-  }
+  },
+  "homepage": "https://github.com/Larry-of-cosmotim/ai-plot-digitizer#readme",
+  "bugs": {
+    "url": "https://github.com/Larry-of-cosmotim/ai-plot-digitizer/issues"
+  },
+  "author": "Yitian Wang"
 }
